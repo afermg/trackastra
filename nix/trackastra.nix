@@ -28,6 +28,10 @@
   joblib,
   # test deps
   pytest,
+  # Server
+  fastapi,
+  fastapi-cli,
+  orjson,
 }:
 buildPythonPackage {
   pname = "trackastra";
@@ -71,6 +75,10 @@ buildPythonPackage {
     # imagecodecs>=2023.7.10
     # Testing
     pytest
+    # Server
+    fastapi
+    fastapi-cli
+    orjson
   ];
 
   pythonImportsCheck = [

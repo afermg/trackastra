@@ -12,7 +12,8 @@ from typing import Literal
 import joblib
 import numpy as np
 import pandas as pd
-from edt import edt
+
+# from edt import edt
 from skimage.measure import regionprops, regionprops_table
 from tqdm import tqdm
 
@@ -53,18 +54,18 @@ def _filter_points(
     return idx
 
 
-def _border_dist(mask: np.ndarray, cutoff: float = 5):
-    """Returns distance to border normalized to 0 (at least cutoff away) and 1 (at border)."""
-    border = np.zeros_like(mask)
+# def _border_dist(mask: np.ndarray, cutoff: float = 5):
+#     """Returns distance to border normalized to 0 (at least cutoff away) and 1 (at border)."""
+#     border = np.zeros_like(mask)
 
-    # only apply to last two dimensions
-    ss = tuple(
-        slice(None) if i < mask.ndim - 2 else slice(1, -1)
-        for i, s in enumerate(mask.shape)
-    )
-    border[ss] = 1
-    dist = 1 - np.minimum(edt(border) / cutoff, 1)
-    return tuple(r.intensity_max for r in regionprops(mask, intensity_image=dist))
+#     # only apply to last two dimensions
+#     ss = tuple(
+#         slice(None) if i < mask.ndim - 2 else slice(1, -1)
+#         for i, s in enumerate(mask.shape)
+#     )
+#     border[ss] = 1
+#     dist = 1 - np.minimum(edt(border) / cutoff, 1)
+#     return tuple(r.intensity_max for r in regionprops(mask, intensity_image=dist))
 
 
 def _border_dist_fast(mask: np.ndarray, cutoff: float = 5):

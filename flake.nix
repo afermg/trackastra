@@ -5,6 +5,8 @@
     systems.url = "github:nix-systems/default";
     flake-utils.url = "github:numtide/flake-utils";
     flake-utils.inputs.systems.follows = "systems";
+    pynng-flake.url = "github:afermg/pynng";
+    pynng-flake.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -28,23 +30,8 @@
 
       in
       with pkgs;
+
       rec {
-        # py311 = (
-        #     pkgs.python312
-        # pkgs.python312.override {
-        # packageOverrides = _: super: {
-        #   scikit-learn = super.scikit-learn.overridePythonAttrs (old: rec {
-        #     version = "1.2.2";
-        #     # skip checks, as a few fail but they are irrelevant
-        #     doCheck = false;
-        #     src = super.fetchPypi {
-        #       pname = "scikit-learn";
-        #       inherit version;
-        #       hash = "sha256-hCmuow7CTnqMftij+mITrfOBSm776gnhbgoMceGho9c=";
-        #     };
-        #   });
-        #   };
-        # }
         packages = {
           trackastra = pkgs.python312.pkgs.callPackage ./nix/trackastra.nix { };
         };
@@ -53,6 +40,7 @@
             let
               python_with_pkgs = (
                 python312.withPackages (pp: [
+                  (inputs.pynng-flake.packages.${system}.pynng)
                   packages.trackastra
                 ])
               );

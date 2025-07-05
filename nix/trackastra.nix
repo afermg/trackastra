@@ -29,9 +29,7 @@
   # test deps
   pytest,
   # Server
-  fastapi,
-  fastapi-cli,
-  orjson,
+  trio,
 }:
 buildPythonPackage {
   pname = "trackastra";
@@ -40,8 +38,8 @@ buildPythonPackage {
   src = ./..; # For local testing, add flag --impure when running
   # src = fetchFromGitHub {
   #   owner = "afermg";
-  #   repo = "baby";
-  #   rev = "39eec0d4c3b8fad9b0a8683cbedf9b4558e07222";
+  #   repo = "trackastra";
+  #   rev = "";
   #   sha256 = "sha256-ptLXindgixDa4AV3x+sQ9I4W0PScIQMkyMNMo0WFa0M=";
   # };
 
@@ -76,9 +74,7 @@ buildPythonPackage {
     # Testing
     pytest
     # Server
-    fastapi
-    fastapi-cli
-    orjson
+    trio
   ];
 
   pythonImportsCheck = [

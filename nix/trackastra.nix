@@ -65,8 +65,6 @@ buildPythonPackage {
     wandb
     # edt
     joblib
-    # kornia>=0.7.0 # TODO remove old augs
-    # imagecodecs>=2023.7.10
     # Testing
     pytest
   ];

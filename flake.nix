@@ -5,8 +5,7 @@
     systems.url = "github:nix-systems/default";
     flake-utils.url = "github:numtide/flake-utils";
     flake-utils.inputs.systems.follows = "systems";
-    pynng-flake.url = "github:afermg/pynng";
-    pynng-flake.inputs.nixpkgs.follows = "nixpkgs";
+    nahual-flake.url = "github:afermg/nahual";
   };
 
   outputs =
@@ -30,17 +29,14 @@
 
       in
       with pkgs;
-
       rec {
-        packages = {
-          trackastra = pkgs.python312.pkgs.callPackage ./nix/trackastra.nix { };
-        };
+        packages = pkgs.callPackage ./nix { };
         devShells = {
           default =
             let
               python_with_pkgs = (
-                python312.withPackages (pp: [
-                  (inputs.pynng-flake.packages.${system}.pynng)
+                python3.withPackages (pp: [
+                  (inputs.nahual-flake.packages.${system}.nahual)
                   packages.trackastra
                 ])
               );

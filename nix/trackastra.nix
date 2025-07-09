@@ -34,19 +34,20 @@
 buildPythonPackage {
   pname = "trackastra";
   version = "0.3.2";
+  format = "pyproject";
 
-  src = ./..; # For local testing, add flag --impure when running
-  # src = fetchFromGitHub {
-  #   owner = "afermg";
-  #   repo = "trackastra";
-  #   rev = "";
-  #   sha256 = "sha256-ptLXindgixDa4AV3x+sQ9I4W0PScIQMkyMNMo0WFa0M=";
-  # };
+  src = fetchFromGitHub {
+    owner = "afermg";
+    repo = "trackastra";
+    rev = "";
+    sha256 = "";
+  };
 
-  pyproject = true;
+  
   buildInputs = [
     setuptools-scm
   ];
+  
   propagatedBuildInputs = [
     numpy
     matplotlib
@@ -73,16 +74,17 @@ buildPythonPackage {
     # imagecodecs>=2023.7.10
     # Testing
     pytest
-    # Server
-    trio
   ];
 
   pythonImportsCheck = [
+    "trackastra"
   ];
 
   meta = {
     description = "trackastra";
     homepage = "https://github.com/afermg/trackastra";
     license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ afermg ];
+    platforms = lib.platforms.all;
   };
 }

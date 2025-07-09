@@ -12,8 +12,9 @@ import time
 import pynng
 import torch
 import trio
+from nahual.serial import deserialize_numpy
 from trackastra.model import Trackastra
-from trio.to_thread import run_sync
+from trackastra.tracking import graph_to_edge_table
 
 MODEL = None
 PARAMETERS = {}
@@ -30,12 +31,6 @@ def setup(model_name: str = "general_2d", mode: str = "greedy") -> dict:
 
     info = {"model": model_name, "device": device, **PARAMETERS}
     return info
-
-
-async def wait_for_data():
-    while True:
-        print("waiting for data")
-        time.sleep(2)
 
 
 async def responder(sock):
@@ -61,13 +56,29 @@ async def responder(sock):
             print(f"Waiting for parameters: {e}")
             time.sleep(1)
 
+    print("Parameters loaded. Will wait for data.")
     while True:  # Analysis loop
         try:
+            # Receive data
             msg = await sock.arecv_msg()
-            content = msg.bytes.decode()
+            content_np = deserialize_numpy(msg.bytes)
+            print(content_np.shape, content_np.dtype)
             # Add data processing here
+            img, masks = content_np
+            result = process(img, masks)
+
         except Exception as e:
             print(f"Waiting for data: {e}")
+
+
+def process(img, masks) -> dict:
+    global MODEL
+
+    track_graph = MODEL.track(
+        img, masks, **PARAMETERS
+    )  # or mode="ilp", or "greedy_nodiv"
+
+    return graph_to_edge_table(track_graph).to_dict()
 
 
 async def main():

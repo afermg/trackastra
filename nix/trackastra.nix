@@ -1,9 +1,7 @@
 {
   lib,
-  # build deps
   buildPythonPackage,
   fetchFromGitHub,
-  # Py build
   setuptools-scm,
   numpy,
   matplotlib,
@@ -24,12 +22,9 @@
   lz4,
   imagecodecs,
   wandb,
-  # edt, # not on nix
+  # edt, # not on nixpkgs
   joblib,
-  # test deps
   pytest,
-  # Server
-  trio,
 }:
 buildPythonPackage {
   pname = "trackastra";

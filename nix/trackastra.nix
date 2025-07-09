@@ -31,12 +31,13 @@ buildPythonPackage {
   version = "0.3.2";
   format = "pyproject";
 
-  src = fetchFromGitHub {
-    owner = "afermg";
-    repo = "trackastra";
-    rev = "f98c4e90bd3f230374b3bdd690279fdcf92dd40a";
-    sha256 = "sha256-1rK6HfeNv1oh9YCkhkTDySNw3TodA5RjW8xFqJZRu4A=";
-  };
+  src = ./..;
+  # src = fetchFromGitHub {
+  #   owner = "afermg";
+  #   repo = "trackastra";
+  #   rev = "f98c4e90bd3f230374b3bdd690279fdcf92dd40a";
+  #   sha256 = "sha256-1rK6HfeNv1oh9YCkhkTDySNw3TodA5RjW8xFqJZRu4A=";
+  # };
 
   
   build-system = [

@@ -34,16 +34,16 @@ buildPythonPackage {
   src = fetchFromGitHub {
     owner = "afermg";
     repo = "trackastra";
-    rev = "";
-    sha256 = "";
+    rev = "f98c4e90bd3f230374b3bdd690279fdcf92dd40a";
+    sha256 = "sha256-1rK6HfeNv1oh9YCkhkTDySNw3TodA5RjW8xFqJZRu4A=";
   };
 
   
-  buildInputs = [
+  build-system = [
     setuptools-scm
   ];
   
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     matplotlib
     scipy

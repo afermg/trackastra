@@ -39,11 +39,10 @@ buildPythonPackage {
   #   sha256 = "sha256-1rK6HfeNv1oh9YCkhkTDySNw3TodA5RjW8xFqJZRu4A=";
   # };
 
-  
   build-system = [
     setuptools-scm
   ];
-  
+
   dependencies = [
     numpy
     matplotlib
@@ -78,7 +77,7 @@ buildPythonPackage {
     description = "trackastra";
     homepage = "https://github.com/afermg/trackastra";
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ afermg ];
+    maintainers = with lib.maintainers; [afermg];
     platforms = lib.platforms.all;
   };
 }

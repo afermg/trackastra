@@ -2,11 +2,10 @@
   lib,
   pkgs,
   python3Packages,
-}:
-let
+}: let
   callPackage = lib.callPackageWith (pkgs // packages // python3Packages);
   packages = {
-    trackastra = callPackage ./trackastra.nix { };
+    trackastra = callPackage ./trackastra.nix {};
   };
 in
-packages
+  packages

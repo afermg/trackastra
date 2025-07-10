@@ -1,5 +1,4 @@
-"""
-Request/Reply is used for synchronous communications where each question is responded with a single answer,
+"""Request/Reply is used for synchronous communications where each question is responded with a single answer,
 for example remote procedure calls (RPCs).
 Like Pipeline, it also can perform load-balancing.
 This is the only reliable messaging pattern in the suite, as it automatically will retry if a request is not matched with a response.
@@ -7,6 +6,7 @@ This is the only reliable messaging pattern in the suite, as it automatically wi
 """
 
 import json
+import sys
 import time
 
 import pynng
@@ -16,65 +16,109 @@ from nahual.serial import deserialize_numpy
 from trackastra.model import Trackastra
 from trackastra.tracking import graph_to_edge_table
 
-MODEL = None
 PARAMETERS = {}
 
-address = "ipc:///tmp/reqrep.ipc"
+address = sys.argv[1]
 
 
-def setup(model_name: str = "general_2d", mode: str = "greedy") -> dict:
-    global MODEL
+def setup(model: str = "general_2d", mode: str = "greedy") -> dict:
+    """Set up the tracking model and configuration.
+
+    Parameters
+    ----------
+    model : str, optional
+        The name of the pre-trained model to load. Defaults to "general_2d".
+    mode : str, optional
+        The mode of operation for the model. Defaults to "greedy".
+
+    Returns
+    -------
+    dict
+        A dictionary containing the device information and configuration parameters.
+    """
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    MODEL = Trackastra.from_pretrained(model_name, device=device)
+    processor = Trackastra.from_pretrained(model, device=device)
 
+    PARAMETERS["model"] = model
     PARAMETERS["mode"] = mode
 
-    info = {"model": model_name, "device": device, **PARAMETERS}
-    return info
+    info = {"device": device, **PARAMETERS}
+    return processor, info
 
 
-async def responder(sock):
+async def responder(sock, processor):
+    """Asynchronous responder function for handling model setup and data processing.
+
+    This function continuously listens for incoming messages via a socket. It handles two
+    modes: initializing a model based on received parameters and processing data using
+    an already loaded model.
+
+    Parameters
+    ----------
+        sock: pynng. (object): The socket object used for receiving and sending messages.
+
+    Returns
+    -------
+        None: This function does not return a value but sends responses via the socket.
+
+    Raises
+    ------
+        Exception: If an error occurs during message handling or processing.
+
+    Notes:
+        - The function uses JSON for message serialization.
+        - The 'setup' function is called to initialize the model.
+        - The 'process' function is used to compute results from input data.
+    """
     while True:
-        try:
-            msg = await sock.arecv_msg()
-            content = msg.bytes.decode()
+        if processor is None:
             try:
+                msg = await sock.arecv_msg()
+                content = msg.bytes.decode()
                 parameters = json.loads(content)
+                if "model" in parameters:  # Start
+                    print("NODE0: RECEIVED REQUEST")
+                    processor, info = setup(**parameters)
+                    info_str = f"Loaded model with parameters {info}"
+                    print(info_str)
+                    print("Sending model info back")
+                    await sock.asend(json.dumps(info).encode())
+
+                    print("Model loaded. Will wait for data.")
             except Exception as e:
-                print("ERROR: {e}")
-            # first_byte =
-            # content =
-            if "model_name" in parameters:  # Start
-                print("NODE0: RECEIVED DATE REQUEST")
-                info = setup(**parameters)
-                info_str = f"Loaded model with parameters {info}"
-                print("Sending model info back")
-                await sock.asend(info_str.encode())
+                print(f"Waiting for parameters: {e}")
+                time.sleep(1)
+        else:
+            try:
+                # Receive data
+                msg = await sock.arecv_msg()
+                content_np = deserialize_numpy(msg.bytes)
+                print(content_np.shape, content_np.dtype)
+                # Add data processing here
+                img, masks = content_np
+                result = process(img, masks, processor=processor)
+                await sock.asend(json.dumps(result).encode())
 
-                break
-        except Exception as e:
-            print(f"Waiting for parameters: {e}")
-            time.sleep(1)
-
-    print("Parameters loaded. Will wait for data.")
-    while True:  # Analysis loop
-        try:
-            # Receive data
-            msg = await sock.arecv_msg()
-            content_np = deserialize_numpy(msg.bytes)
-            print(content_np.shape, content_np.dtype)
-            # Add data processing here
-            img, masks = content_np
-            result = process(img, masks)
-
-        except Exception as e:
-            print(f"Waiting for data: {e}")
+            except Exception as e:
+                print(f"Waiting for data: {e}")
 
 
-def process(img, masks) -> dict:
-    global MODEL
+def process(img, masks, processor) -> dict:
+    """Process an image and masks to generate a graph-based tracking representation.
 
-    track_graph = MODEL.track(
+    Parameters
+    ----------
+    img : array-like
+        The input image data.
+    masks : array-like
+        The input masks data.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the edge table representation of the tracking graph.
+    """
+    track_graph = processor.track(
         img, masks, **PARAMETERS
     )  # or mode="ilp", or "greedy_nodiv"
 
@@ -82,9 +126,25 @@ def process(img, masks) -> dict:
 
 
 async def main():
-    with pynng.Rep0(listen=address, recv_timeout=300) as rep:
+    """Main function for the asynchronous server.
+
+    This function sets up a nng connection using pynng and starts a nursery to handle
+    incoming requests asynchronously.
+
+    Parameters
+    ----------
+    address : str
+        The network address to listen on.
+
+    Returns
+    -------
+    None
+    """
+    processor = None
+    with pynng.Rep0(listen=address, recv_timeout=300) as sock:
+        print(f"Server listening on {address}")
         async with trio.open_nursery() as nursery:
-            nursery.start_soon(responder, rep)
+            nursery.start_soon(responder, sock, processor)
 
 
 if __name__ == "__main__":

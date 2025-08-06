@@ -12,6 +12,7 @@ import time
 import pynng
 import torch
 import trio
+from loguru import logger
 from nahual.serial import deserialize_numpy
 from trackastra.model import Trackastra
 from trackastra.tracking import graph_to_edge_table
@@ -21,7 +22,11 @@ PARAMETERS = {}
 address = sys.argv[1]
 
 
-def setup(model: str = "general_2d", mode: str = "greedy") -> dict:
+def setup(
+    model: str = "general_2d",
+    mode: str = "greedy",
+    logfile: str | None = "trackastra.log",
+) -> dict:
     """Set up the tracking model and configuration.
 
     Parameters
@@ -36,6 +41,9 @@ def setup(model: str = "general_2d", mode: str = "greedy") -> dict:
     dict
         A dictionary containing the device information and configuration parameters.
     """
+    if logfile:
+        logger.add(logfile)
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     processor = Trackastra.from_pretrained(model, device=device)
 
@@ -43,6 +51,7 @@ def setup(model: str = "general_2d", mode: str = "greedy") -> dict:
     PARAMETERS["mode"] = mode
 
     info = {"device": device, **PARAMETERS}
+    logger.debug(f"Model info: {info}")
     return processor, info
 
 
@@ -95,7 +104,7 @@ async def responder(sock, processor):
                 try:
                     content_np = deserialize_numpy(msg.bytes)
                 except Exception as e:
-                    print(f"Invalid data: {e}")
+                    logger.debug(f"Invalid data: {e}")
                     await sock.asend(json.dumps("Invalid data").encode())
 
                 print(content_np.shape, content_np.dtype)
@@ -123,11 +132,21 @@ def process(img, masks, processor) -> dict:
     dict
         A dictionary containing the edge table representation of the tracking graph.
     """
-    track_graph = processor.track(
-        img, masks, **PARAMETERS
-    )  # or mode="ilp", or "greedy_nodiv"
+    try:
+        track_graph = processor.track(
+            img, masks, **PARAMETERS
+        )  # or mode="ilp", or "greedy_nodiv"
+        result = graph_to_edge_table(track_graph).to_dict()
+    except Exception as e:
+        logger.debug(f"Trackastra failed: {e}")
+        result = {
+            "source_frame": dict(),
+            "source_label": dict(),
+            "target_frame": dict(),
+            "target_label": dict(),
+        }
 
-    return graph_to_edge_table(track_graph).to_dict()
+    return result
 
 
 async def main():

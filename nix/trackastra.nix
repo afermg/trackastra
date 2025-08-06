@@ -25,6 +25,7 @@
   # edt, # not on nixpkgs
   joblib,
   pytest,
+  loguru,
 }:
 buildPythonPackage {
   pname = "trackastra";
@@ -67,6 +68,8 @@ buildPythonPackage {
     joblib
     # Testing
     pytest
+    # logging
+    loguru
   ];
 
   pythonImportsCheck = [
@@ -77,7 +80,7 @@ buildPythonPackage {
     description = "trackastra";
     homepage = "https://github.com/afermg/trackastra";
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [afermg];
+    maintainers = with lib.maintainers; [ afermg ];
     platforms = lib.platforms.all;
   };
 }

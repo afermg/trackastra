@@ -25,7 +25,7 @@ address = sys.argv[1]
 def setup(
     model: str = "general_2d",
     mode: str = "greedy",
-    logfile: str | None = "trackastra.log",
+    logfile: str | None = "errors.log",
 ) -> dict:
     """Set up the tracking model and configuration.
 

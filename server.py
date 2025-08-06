@@ -139,11 +139,13 @@ def process(img, masks, processor) -> dict:
         result = graph_to_edge_table(track_graph).to_dict()
     except Exception as e:
         logger.debug(f"Trackastra failed: {e}")
+        # Mock empty output for pipelines to run smoothly
         result = {
             "source_frame": dict(),
             "source_label": dict(),
             "target_frame": dict(),
             "target_label": dict(),
+            "weight": dict(),
         }
 
     return result

@@ -92,7 +92,12 @@ async def responder(sock, processor):
             try:
                 # Receive data
                 msg = await sock.arecv_msg()
-                content_np = deserialize_numpy(msg.bytes)
+                try:
+                    content_np = deserialize_numpy(msg.bytes)
+                except Exception as e:
+                    print(f"Invalid data: {e}")
+                    await sock.asend(json.dumps("Invalid data").encode())
+
                 print(content_np.shape, content_np.dtype)
                 # Add data processing here
                 img, masks = content_np

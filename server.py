@@ -109,7 +109,7 @@ async def responder(sock, processor):
 
                 print(content_np.shape, content_np.dtype)
                 # Add data processing here
-                img, masks = content_np
+                img, masks = content_np  # Expand input array
                 result = process(img, masks, processor=processor)
                 await sock.asend(json.dumps(result).encode())
 
@@ -136,7 +136,7 @@ def process(img, masks, processor) -> dict:
         track_graph = processor.track(
             img, masks, **PARAMETERS
         )  # or mode="ilp", or "greedy_nodiv"
-        result = graph_to_edge_table(track_graph).to_dict()
+        result = graph_to_edge_table(track_graph).to_dict(orient="list")
     except Exception as e:
         logger.debug(f"Trackastra failed: {e}")
         # Mock empty output for pipelines to run smoothly

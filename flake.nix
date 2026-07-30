@@ -9,17 +9,15 @@
     nahual-flake.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      systems,
-      ...
-    }@inputs:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    systems,
+    ...
+  } @ inputs:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
+      system: let
         pkgs = import nixpkgs {
           system = system;
           config = {
@@ -27,22 +25,39 @@
             cudaSupport = true;
           };
         };
-        runServer = pkgs.writeScriptBin "runserver.sh" ''
+        modelPackages = pkgs.callPackage ./nix {};
+        python_with_pkgs = pkgs.python3.withPackages (pp: [
+          (inputs.nahual-flake.packages.${system}.nahual)
+          modelPackages.trackastra
+        ]);
+        runServer = pkgs.writeScriptBin "nahual-trackastra" ''
           #!${pkgs.bash}/bin/bash
-          python server.py ''${@:-"ipc:///tmp/trackastra.ipc"}
+          exec ${python_with_pkgs}/bin/python ${self}/server.py "''${1:-tcp://0.0.0.0:5555}"
         '';
-      in
-      with pkgs;
-      rec {
-        apps.default = {
+        serverApp = {
           type = "app";
-          program = "${runServer}/bin/runserver.sh";
+          program = "${runServer}/bin/nahual-trackastra";
         };
-        formatter = pkgs.alejandra;
-        packages = pkgs.callPackage ./nix { };
-        devShells = {
-          default =
-            let
+      in
+        with pkgs; rec {
+          apps.default = serverApp;
+          formatter = pkgs.alejandra;
+          packages =
+            modelPackages
+            // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+              oci-image = import ./nix/oci-image.nix {
+                inherit pkgs;
+                name = "trackastra";
+                title = "Nahual Trackastra";
+                description = "Trackastra cell tracking served through Nahual";
+                source = "https://github.com/afermg/trackastra";
+                revision = self.rev or self.dirtyRev or "unknown";
+                server = runServer;
+                entrypoint = serverApp.program;
+              };
+            };
+          devShells = {
+            default = let
               python_with_pkgs = (
                 python3.withPackages (pp: [
                   (inputs.nahual-flake.packages.${system}.nahual)
@@ -50,28 +65,28 @@
                 ])
               );
             in
-            mkShell {
-              packages = [
-                python_with_pkgs
-              ];
-              currentSystem = system;
-              venvDir = "./.venv";
-              postVenvCreation = ''
-                unset SOURCE_DATE_EPOCH
-              '';
-              postShellHook = ''
-                unset SOURCE_DATE_EPOCH
-              '';
-              shellHook = ''
-                runHook venvShellHook
-                # PYTHONSAFEPATH=1 (Python 3.11+) keeps Python from prepending
-                # the script's directory (or cwd for python -c mode) to
-                # sys.path, which would otherwise let the in-tree trackastra/
-                # source dir shadow the nix-built package.
-                export PYTHONSAFEPATH=1
-              '';
-            };
-        };
-      }
+              mkShell {
+                packages = [
+                  python_with_pkgs
+                ];
+                currentSystem = system;
+                venvDir = "./.venv";
+                postVenvCreation = ''
+                  unset SOURCE_DATE_EPOCH
+                '';
+                postShellHook = ''
+                  unset SOURCE_DATE_EPOCH
+                '';
+                shellHook = ''
+                  runHook venvShellHook
+                  # PYTHONSAFEPATH=1 (Python 3.11+) keeps Python from prepending
+                  # the script's directory (or cwd for python -c mode) to
+                  # sys.path, which would otherwise let the in-tree trackastra/
+                  # source dir shadow the nix-built package.
+                  export PYTHONSAFEPATH=1
+                '';
+              };
+          };
+        }
     );
 }

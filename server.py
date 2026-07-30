@@ -9,6 +9,7 @@ import json
 import sys
 import time
 
+import numpy
 import pynng
 import torch
 import trio
@@ -133,6 +134,9 @@ def process(img, masks, processor) -> dict:
         A dictionary containing the edge table representation of the tracking graph.
     """
     try:
+        # Packing images and masks into one NumPy payload promotes integer
+        # masks to the image dtype. Regionprops requires integer labels.
+        masks = numpy.asarray(masks).astype(numpy.int32)
         track_graph = processor.track(
             img, masks, **PARAMETERS
         )  # or mode="ilp", or "greedy_nodiv"
@@ -141,11 +145,11 @@ def process(img, masks, processor) -> dict:
         logger.debug(f"Trackastra failed: {e}")
         # Mock empty output for pipelines to run smoothly
         result = {
-            "source_frame": dict(),
-            "source_label": dict(),
-            "target_frame": dict(),
-            "target_label": dict(),
-            "weight": dict(),
+            "source_frame": [],
+            "source_label": [],
+            "target_frame": [],
+            "target_label": [],
+            "weight": [],
         }
 
     return result
